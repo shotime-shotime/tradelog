@@ -2,15 +2,17 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>TradeLog - Professional Share Edition</title>
+    <title>TradeLog - Professional Analytics</title>
     <script src="stocks.js"></script>
     <style>
         :root { --primary: #0078d4; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; --gold: #ffd700; --dark: #1a1a1a; }
         body { font-family: 'Segoe UI', 'Meiryo', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #333; }
         .container { max-width: 1000px; margin: auto; padding: 20px; }
         
-        /* 期間コントロール */
-        .period-controls { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .period-controls { 
+            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            margin-bottom: 15px; position: sticky; top: 0; z-index: 101; 
+        }
         .period-nav { display: flex; gap: 5px; margin-bottom: 12px; }
         .period-nav button { flex: 1; padding: 10px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; color: #666; transition: 0.3s; }
         .period-nav button.active { background: var(--primary); color: white; }
@@ -19,48 +21,48 @@
         #history-select { padding: 9px; border-radius: 6px; border: 1px solid #ddd; flex-grow: 1; }
         .period-display { text-align: center; font-size: 13px; font-weight: bold; color: var(--primary); margin-top: 10px; background: #eef6fc; padding: 8px; border-radius: 20px; }
 
-        /* ダッシュボード */
-        .asset-summary-bar { background: var(--dark); color: white; padding: 20px; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-bottom: 20px; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-bottom: 4px solid var(--primary); }
+        .asset-summary-bar { 
+            background: var(--dark); color: white; padding: 20px; border-radius: 12px; 
+            display: grid; grid-template-columns: 1fr 1.2fr 1.8fr; gap: 15px; margin-bottom: 15px; 
+            position: sticky; top: 150px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-bottom: 4px solid var(--primary); 
+        }
         .asset-summary-bar .item { text-align: center; border-right: 1px solid #444; }
-        .asset-summary-bar .item:last-child { border-right: none; }
         .asset-summary-bar label { font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; }
         .asset-summary-bar .value { font-size: 22px; font-weight: bold; }
 
-        /* セクション・カード */
+        .goal-container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .goal-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; font-weight: bold; }
+        .progress-bg { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; }
+        .progress-bar { background: linear-gradient(90deg, var(--primary), #00c6ff); height: 100%; transition: 0.5s; width: 0%; }
+
+        .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .analytics-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .table-mini { width: 100%; font-size: 12px; border-collapse: collapse; }
+        .table-mini th { text-align: left; color: #888; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+        .table-mini td { padding: 8px 0; border-bottom: 1px solid #f9f9f9; }
+
         section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
         h3 { margin-top: 0; font-size: 15px; border-left: 4px solid var(--primary); padding-left: 10px; margin-bottom: 15px; }
         
-        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 5px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.03); position: relative; border-top: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; transition: 0.2s; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 5px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.03); position: relative; border: 1px solid #eee; border-left-width: 5px; }
         .card.win { border-left-color: var(--success); }
         .card.loss { border-left-color: var(--danger); }
         .card-pl { font-size: 18px; font-weight: bold; margin-top: 5px; }
-        .pl-plus { color: var(--success); font-weight: bold; }
-        .pl-minus { color: var(--danger); font-weight: bold; }
+        .pl-plus { color: var(--success); }
+        .pl-minus { color: var(--danger); }
 
-        /* ボタン類 */
         .card-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 5px; }
-        .btn-edit { background: #e3f2fd; color: #0288d1; font-size: 11px; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-edit:hover { background: var(--primary); color: white; }
-        .btn-delete { background: #ffebee; color: #c62828; font-size: 11px; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-restore { background: var(--primary); color: white; font-size: 11px; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-mini { font-size: 10px; padding: 3px 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-settle { background: var(--gold); color: #000; }
+        .btn-edit { background: #e3f2fd; color: var(--primary); }
+        .btn-delete { background: #ffebee; color: #c62828; }
 
-        /* 入力エリア */
         .edit-form { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; }
-        .form-grid { display: grid; grid-template-columns: 80px 1fr 100px 100px 100px; gap: 8px; margin-bottom: 10px; }
-        .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; }
-        .btn-main { background: var(--dark); color: white; width: 100%; margin-top: 10px; font-size: 15px; }
-        .btn-sub { background: #eee; color: #333; }
-        .btn-add-row { background: #f0f0f0; color: #555; border: 1px solid #ddd; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; }
-
+        .form-grid { display: grid; grid-template-columns: 80px 1fr 100px 80px 80px; gap: 8px; margin-bottom: 10px; }
+        .btn-main { background: var(--dark); color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         input, select, textarea { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-        .edit-form-highlight { border: 2px solid var(--primary) !important; background: #f0f7ff !important; }
-        .editing-card { border: 2px solid var(--primary) !important; background: #f0f7ff !important; }
-        
-        .trash-section { margin-top: 40px; border-top: 2px dashed #ccc; padding-top: 20px; opacity: 0.8; }
-        
-        /* 管理設定スタイル */
-        .admin-section { background: #f0f0f0; border: 1px solid #ddd; padding: 15px; border-radius: 12px; margin-top: 20px; }
-        .admin-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .edit-form-highlight { border: 2px solid var(--gold) !important; background: #fffdf0 !important; }
+        .edit-mode-active { border: 2px solid var(--primary) !important; background: #f0f7ff !important; }
     </style>
 </head>
 <body>
@@ -74,82 +76,97 @@
             <button id="btn-year" onclick="changeMode('year')">年次</button>
         </div>
         <div class="jump-controls">
-            <button class="jump-btn" onclick="offsetPeriod(-1)">◀ 前へ</button>
+            <button class="jump-btn" onclick="offsetPeriod(-1)">◀</button>
             <select id="history-select" onchange="jumpToHistory(this.value)"></select>
-            <button class="jump-btn" onclick="offsetPeriod(1)">次へ ▶</button>
+            <button class="jump-btn" onclick="offsetPeriod(1)">▶</button>
         </div>
         <div id="period-info" class="period-display"></div>
     </div>
 
     <div class="asset-summary-bar">
-        <div class="item"><label id="period-label">期間損益</label><div id="dash-period-pl" class="value">0</div></div>
-        <div class="item"><label>通算損益 (税引/含み)</label><div id="dash-total-pl" class="value">0</div></div>
-        <div class="item"><label>保有時価 (含み損益)</label><div id="dash-holdings-val" class="value" style="color:var(--gold)">0</div><div id="dash-holdings-diff" style="font-size:12px;">(+0)</div></div>
+        <div class="item"><label>期間損益</label><div id="dash-period-pl" class="value">0</div></div>
+        <div class="item"><label>通算(税引前)</label><div id="dash-total-before-tax" class="value">0</div><div id="dash-total-pl" style="font-size:10px; opacity:0.7"></div></div>
+        <div class="item"><label>保有時価</label><div id="dash-holdings-val" class="value" style="color:var(--gold)">0</div><div id="dash-holdings-diff" style="font-size:11px"></div></div>
+    </div>
+
+    <div class="goal-container">
+        <div class="goal-header"><span>🎯 期間目標進捗</span><span id="goal-text" onclick="setGoal()" style="cursor:pointer; text-decoration:underline;">目標設定</span></div>
+        <div class="progress-bg"><div id="goal-bar" class="progress-bar"></div></div>
+    </div>
+
+    <div class="analytics-grid">
+        <div class="analytics-card">
+            <h3>📊 銘柄別(TOP5)</h3>
+            <table class="table-mini"><thead><tr><th>銘柄</th><th>勝率</th><th>損益</th></tr></thead><tbody id="stock-stats-body"></tbody></table>
+        </div>
+        <div class="analytics-card">
+            <h3>🏢 セクター別(TOP5)</h3>
+            <table class="table-mini"><thead><tr><th>セクター</th><th>勝率</th><th>損益</th></tr></thead><tbody id="sector-stats-body"></tbody></table>
+        </div>
     </div>
 
     <section>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h3>📦 保有銘柄</h3>
-            <button class="btn btn-sub" onclick="showHForm()">+ 銘柄追加</button>
+            <button class="btn-mini btn-settle" style="padding:10px 15px; color:white; background:var(--primary)" onclick="showHForm()">+ 新規保有</button>
         </div>
         <div id="h-editor" style="display:none;" class="edit-form">
             <div class="form-grid">
                 <input type="text" id="h-code" placeholder="コード" onkeyup="searchStock('h')">
                 <input type="text" id="h-name" placeholder="銘柄名" readonly style="background:#eee">
-                <input type="number" id="h-qty" placeholder="株数" step="100" min="0">
+                <input type="text" id="h-sector" placeholder="セクター" readonly style="background:#eee">
+                <input type="number" id="h-qty" placeholder="株数">
                 <input type="number" id="h-buy" placeholder="取得単価">
-                <input type="number" id="h-now" placeholder="現在値">
             </div>
-            <button class="btn btn-main" style="background:var(--success)" id="h-save-btn" onclick="saveHolding()">保有銘柄を保存</button>
-            <button class="btn btn-sub" style="width:100%; margin-top:5px;" onclick="hideHForm()">キャンセル</button>
+            <input type="number" id="h-now" placeholder="現在値" style="width:120px;">
+            <button class="btn-main" style="background:var(--success)" onclick="saveHolding()">保存</button>
+            <button class="btn-main" style="background:#ccc; margin-top:5px;" onclick="hideHForm()">キャンセル</button>
         </div>
         <div id="holding-list"></div>
     </section>
 
     <section id="t-section">
-        <h3>📉 確定損益の記録</h3>
+        <h3>📉 損益記録・編集</h3>
         <div class="edit-form" id="t-form-container">
-            <div style="display:grid; grid-template-columns: 140px 100px 1fr 100px; gap:10px; margin-bottom:10px;">
+            <div id="settle-notice" style="display:none; color:var(--gold); background:#000; padding:5px 10px; border-radius:4px; font-size:11px; margin-bottom:10px;">⚠️ 決済モード: 内容を確認して保存してください</div>
+            <div id="edit-notice" style="display:none; color:white; background:var(--primary); padding:5px 10px; border-radius:4px; font-size:11px; margin-bottom:10px;">📝 履歴編集モード: 内容を修正して上書き保存してください</div>
+            
+            <div style="display:grid; grid-template-columns: 140px 100px 1fr 120px; gap:10px; margin-bottom:10px;">
                 <input type="date" id="t-date">
                 <input type="text" id="t-code" placeholder="コード" onkeyup="searchStock('t')">
                 <input type="text" id="t-name" readonly style="background:#eee">
-                <select id="t-side"><option value="買">買</option><option value="売">売</option></select>
+                <input type="text" id="t-sector" readonly style="background:#eee" placeholder="セクター">
             </div>
             <div id="exec-list"></div>
-            <button class="btn-add-row" onclick="addRow()">+ 約定行を追加</button>
-            <textarea id="t-memo" placeholder="メモ..." style="width:100%; height:50px; margin-top:10px;"></textarea>
-            <button class="btn btn-main" id="btn-t-save" onclick="saveTrade()">トレードを保存</button>
-            <button class="btn btn-sub" id="btn-t-cancel" style="display:none; width:100%; margin-top:5px;" onclick="resetTForm()">キャンセル</button>
+            <div style="margin-top:10px;">
+                <button class="btn-mini" style="background:#eee;" onclick="addRow()">+ 行追加</button>
+                <select id="t-side" style="margin-left:10px;"><option value="買">買</option><option value="売">売</option></select>
+                <span style="font-size:11px; color:#888; margin-left:10px;">※編集時は直接「損益額」のみ修正も可→</span>
+                <input type="number" id="t-manual-pl" placeholder="損益を手動入力" style="width:120px;">
+            </div>
+            <textarea id="t-memo" placeholder="トレードメモ..." style="width:100%; height:50px; margin-top:10px;"></textarea>
+            <button class="btn-main" id="btn-t-save" onclick="saveTrade()">トレードを保存</button>
+            <button id="btn-t-cancel" class="btn-main" style="display:none; background:#ccc;" onclick="resetTForm()">キャンセル</button>
         </div>
     </section>
 
-    <h3>📜 取引履歴</h3>
+    <h3>📜 履歴</h3>
     <div id="history-list"></div>
 
     <div class="admin-section">
-        <h3>⚙️ ツール管理</h3>
-        <p style="font-size:11px; color:#666;">データはご利用のブラウザにのみ保存されます。他の人とデータが混ざることはありません。</p>
-        <div class="admin-btns">
-            <button class="btn btn-sub" onclick="exportData()">データを保存(バックアップ)</button>
-            <button class="btn btn-sub" onclick="importData()">データを復元(読込)</button>
-            <button class="btn-delete" style="padding:8px 12px;" onclick="resetAllData()">全データを初期化</button>
-        </div>
-    </div>
-
-    <div class="trash-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="border-left-color:#666; color:#666;">🗑 ゴミ箱</h3>
-            <button class="btn-delete" onclick="emptyTrash()">空にする</button>
-        </div>
-        <div id="trash-list"></div>
+        <button class="btn-admin" onclick="refreshPastSectors()">🔄 過去データを最新マスタと同期</button>
+        <button class="btn-admin" onclick="exportData()">💾 バックアップ</button>
     </div>
 </div>
 
 <script>
     let trades = JSON.parse(localStorage.getItem('trade_logs')) || [];
     let holdings = JSON.parse(localStorage.getItem('trade_holdings')) || [];
-    let trash = JSON.parse(localStorage.getItem('trade_trash')) || [];
-    let hIdx = -1, tIdx = -1, mode = 'day', offset = 0;
+    let goals = JSON.parse(localStorage.getItem('trade_goals')) || {day:0, week:0, month:0, year:0};
+    
+    let hIdx = -1; // 保有銘柄の編集用
+    let tEditIdx = -1; // 履歴トレードの編集用
+    let mode = 'day', offset = 0, isSettleMode = false;
     const TAX = 0.20315;
 
     window.onload = () => { changeMode('day'); resetTForm(); };
@@ -157,9 +174,23 @@
     function saveAll() {
         localStorage.setItem('trade_logs', JSON.stringify(trades));
         localStorage.setItem('trade_holdings', JSON.stringify(holdings));
-        localStorage.setItem('trade_trash', JSON.stringify(trash));
+        localStorage.setItem('trade_goals', JSON.stringify(goals));
     }
 
+    // 目標設定
+    function setGoal() {
+        const d = prompt("1日の目標利益（円）:", goals.day || 0);
+        if (d === null) return;
+        const dayGoal = parseInt(d) || 0;
+        if (confirm("他の期間も自動計算しますか？")) {
+            goals.day = dayGoal; goals.week = dayGoal * 5; goals.month = dayGoal * 20; goals.year = dayGoal * 240;
+        } else {
+            goals.day = dayGoal;
+        }
+        saveAll(); render();
+    }
+
+    // 期間切り替え
     function changeMode(m) { mode = m; offset = 0; updatePeriodUI(); }
     function offsetPeriod(d) { offset += d; updatePeriodUI(); }
     function jumpToHistory(v) { offset = parseInt(v); updatePeriodUI(); }
@@ -167,200 +198,211 @@
     function updatePeriodUI() {
         document.querySelectorAll('.period-nav button').forEach(b => b.classList.toggle('active', b.id === `btn-${mode}`));
         const sel = document.getElementById('history-select'); sel.innerHTML = "";
-        
-        const maxLimit = (mode === 'day') ? -60 : -100;
-
-        for (let i = 0; i >= maxLimit; i--) {
-            let s = new Date();
-            s.setHours(0,0,0,0);
-
-            if (mode === 'day') {
-                s.setDate(s.getDate() + i);
-            } else if (mode === 'week') {
-                s.setDate(s.getDate() - s.getDay() + (i * 7));
-            } else if (mode === 'month') {
-                s.setMonth(s.getMonth() + i, 1);
-            } else if (mode === 'year') {
-                s.setFullYear(s.getFullYear() + i, 0, 1);
-            }
-            
-            const y = s.getFullYear();
-            const m = s.getMonth() + 1;
-            const d = s.getDate();
-            const dayName = ['日','月','火','水','木','金','土'][s.getDay()];
-            let text = "";
-
-            if (i === 0) {
-                text = (mode === 'day') ? "今日" : "現在の" + (mode==='week'?'週':mode==='month'?'月':'年');
-            } else {
-                if (mode === 'day') {
-                    text = (i >= -7) ? Math.abs(i) + "日前" : `${m}/${d} (${dayName})`;
-                } else if (mode === 'week') {
-                    text = `${Math.abs(i)}週前 (${y}/${m}/${d}〜)`;
-                } else if (mode === 'month') {
-                    text = `${Math.abs(i)}ヶ月前 (${y}/${m})`;
-                } else if (mode === 'year') {
-                    text = `${Math.abs(i)}年前 (${y}年)`;
-                }
-            }
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.selected = (i === offset);
-            opt.textContent = text;
+        for (let i = 0; i >= -60; i--) {
+            const opt = document.createElement('option'); opt.value = i; opt.selected = (i === offset); 
+            opt.textContent = i === 0 ? "現在" : Math.abs(i) + (mode==='day'?'日前':mode==='week'?'週前':mode==='month'?'月前':'年前');
             sel.appendChild(opt);
         }
-        syncInputDateWithPeriod();
         render();
     }
 
     function getRange() {
         let s = new Date(); s.setHours(0,0,0,0);
         let e = new Date(); e.setHours(23,59,59,999);
-
-        if (mode === 'day') {
-            s.setDate(s.getDate() + offset);
-            e.setDate(e.getDate() + offset);
-        } else if (mode === 'week') {
-            s.setDate(s.getDate() - s.getDay() + (offset * 7));
-            e = new Date(s);
-            e.setDate(s.getDate() + 6);
-            e.setHours(23,59,59,999);
-        } else if (mode === 'month') {
-            s.setMonth(s.getMonth() + offset, 1);
-            e = new Date(s.getFullYear(), s.getMonth() + 1, 0, 23, 59, 59, 999);
-        } else if (mode === 'year') {
-            s.setFullYear(s.getFullYear() + offset, 0, 1);
-            e.setFullYear(s.getFullYear() + offset, 11, 31, 23, 59, 59, 999);
-        }
+        if (mode === 'day') { s.setDate(s.getDate() + offset); e.setDate(e.getDate() + offset); }
+        else if (mode === 'week') { s.setDate(s.getDate() - s.getDay() + (offset * 7)); e.setDate(s.getDate() + 6); }
+        else if (mode === 'month') { s.setMonth(s.getMonth() + offset, 1); e = new Date(s.getFullYear(), s.getMonth() + 1, 0, 23, 59, 59); }
+        else if (mode === 'year') { s.setFullYear(s.getFullYear() + offset, 0, 1); e.setFullYear(s.getFullYear() + offset, 11, 31); }
         return { s, e };
     }
 
-    function syncInputDateWithPeriod() {
-        if (tIdx === -1) {
-            const range = getRange();
-            const year = range.s.getFullYear();
-            const month = String(range.s.getMonth() + 1).padStart(2, '0');
-            const day = String(range.s.getDate()).padStart(2, '0');
-            document.getElementById('t-date').value = `${year}-${month}-${day}`;
-        }
-    }
+    // 描画メイン
+    function render() {
+        const range = getRange();
+        document.getElementById('period-info').innerText = `${range.s.toLocaleDateString()} 〜 ${range.e.toLocaleDateString()}`;
+        
+        // 保有
+        let hHtml = "", totalMV = 0, totalFloating = 0;
+        holdings.forEach((h, i) => {
+            const mv = (h.currentPrice || 0) * (h.qty || 0);
+            const pl = mv - ((h.buyPrice || 0) * (h.qty || 0));
+            totalMV += mv; totalFloating += pl;
+            hHtml += `<div class="card ${pl>=0?'win':'loss'}">
+                <div class="card-actions"><button class="btn-mini btn-settle" onclick="settleHolding(${i})">決済</button><button class="btn-mini btn-delete" onclick="deleteHolding(${i})">消</button></div>
+                <div style="font-size:10px; color:#888">${h.code} | ${h.sector || ''}</div>
+                <div style="font-weight:bold">${h.name} / ${h.qty}株</div>
+                <div class="card-pl ${pl>=0?'pl-plus':'pl-minus'}">${mv.toLocaleString()}円 (${pl>=0?'+':''}${pl.toLocaleString()})</div>
+            </div>`;
+        });
+        document.getElementById('holding-list').innerHTML = hHtml || '<div style="text-align:center; padding:10px; color:#ccc;">なし</div>';
 
-    // ツール管理用
-    function exportData() {
-        const data = { trades, holdings, trash };
-        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `TradeLog_Backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-    }
+        // 履歴
+        let pNet = 0, allNet = 0, statsS = {}, statsV = {}, tHtml = "";
+        trades.forEach((t, i) => {
+            allNet += t.pl;
+            const d = new Date(t.date);
+            if (d >= range.s && d <= range.e) {
+                pNet += t.pl;
+                const sKey = t.name; const vKey = t.sector || "未分類";
+                [ [statsS, sKey], [statsV, vKey] ].forEach(([obj, k]) => {
+                    if(!obj[k]) obj[k] = {pl:0, win:0, count:0};
+                    obj[k].pl += t.pl; obj[k].count++; if(t.pl > 0) obj[k].win++;
+                });
+                tHtml += `<div class="card ${t.pl>=0?'win':'loss'}">
+                    <div class="card-actions">
+                        <button class="btn-mini btn-edit" onclick="editTrade(${i})">編集</button>
+                        <button class="btn-mini btn-delete" onclick="deleteTrade(${i})">削除</button>
+                    </div>
+                    <div style="font-size:10px; color:#888">${t.date} | ${t.code}</div>
+                    <div style="font-weight:bold">${t.name} (${t.side})</div>
+                    <div class="card-pl ${t.pl>=0?'pl-plus':'pl-minus'}">${t.pl.toLocaleString()}円</div>
+                    ${t.memo ? `<div style="font-size:11px; color:#666; margin-top:5px; border-top:1px dashed #eee; padding-top:5px;">${t.memo}</div>` : ''}
+                </div>`;
+            }
+        });
+        document.getElementById('history-list').innerHTML = tHtml || '<div style="text-align:center; padding:20px; color:#ccc;">履歴なし</div>';
 
-    function importData() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = e => {
-            const reader = new FileReader();
-            reader.onload = ev => {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if(confirm("データを上書きしますか？")) {
-                        trades = data.trades || [];
-                        holdings = data.holdings || [];
-                        trash = data.trash || [];
-                        saveAll(); location.reload();
-                    }
-                } catch(err) { alert("不正なファイルです"); }
-            };
-            reader.readAsText(e.target.files[0]);
+        // ダッシュボード更新
+        document.getElementById('dash-period-pl').innerText = pNet.toLocaleString() + "円";
+        document.getElementById('dash-period-pl').className = "value " + (pNet>=0?'pl-plus':'pl-minus');
+        document.getElementById('dash-total-before-tax').innerText = allNet.toLocaleString() + "円";
+        document.getElementById('dash-total-pl').innerText = `(税引後: ${Math.floor(allNet>0?allNet*(1-TAX):allNet).toLocaleString()}円)`;
+        document.getElementById('dash-holdings-val').innerText = totalMV.toLocaleString() + "円";
+        document.getElementById('dash-holdings-diff').innerText = `(${totalFloating>=0?'+':''}${totalFloating.toLocaleString()})`;
+        
+        // 目標バー
+        const goal = goals[mode] || 0;
+        const per = goal > 0 ? Math.min(100, Math.max(0, (pNet / goal) * 100)) : 0;
+        document.getElementById('goal-text').innerText = goal > 0 ? `目標 ${goal.toLocaleString()}円 (${Math.floor(per)}%)` : "目標未設定";
+        document.getElementById('goal-bar').style.width = per + "%";
+
+        // 統計ランキング表示
+        const renderRank = (obj, id) => {
+            let h = "";
+            Object.keys(obj).sort((a,b)=>obj[b].pl - obj[a].pl).slice(0,5).forEach(k=>{
+                h += `<tr><td>${k}</td><td>${Math.round(obj[k].win/obj[k].count*100)}%</td><td class="${obj[k].pl>=0?'pl-plus':'pl-minus'}">${obj[k].pl.toLocaleString()}</td></tr>`;
+            });
+            document.getElementById(id).innerHTML = h;
         };
-        input.click();
+        renderRank(statsS, 'stock-stats-body'); renderRank(statsV, 'sector-stats-body');
     }
 
-    function resetAllData() {
-        if(confirm("全データを削除して初期化しますか？")) {
-            localStorage.clear(); location.reload();
+    // トレード履歴の削除
+    function deleteTrade(i) {
+        if(confirm("この履歴を削除しますか？")) {
+            trades.splice(i, 1); saveAll(); render();
         }
     }
 
-    // 基本操作系
-    function showHForm() { hIdx = -1; document.getElementById('h-editor').style.display='block'; clearH(); render(); }
-    function hideHForm() { hIdx = -1; document.getElementById('h-editor').style.display='none'; render(); }
-    function clearH() { ['h-code','h-name','h-qty','h-buy','h-now'].forEach(id => document.getElementById(id).value=""); }
-    function saveHolding() {
-        const d = { code: document.getElementById('h-code').value, name: document.getElementById('h-name').value, qty: parseFloat(document.getElementById('h-qty').value)||0, buyPrice: parseFloat(document.getElementById('h-buy').value)||0, currentPrice: parseFloat(document.getElementById('h-now').value)||0 };
-        if(hIdx > -1) holdings[hIdx] = d; else holdings.unshift(d);
-        saveAll(); hideHForm();
+    // トレード履歴の編集開始
+    function editTrade(i) {
+        tEditIdx = i;
+        const t = trades[i];
+        document.getElementById('t-form-container').classList.add('edit-mode-active');
+        document.getElementById('edit-notice').style.display = "block";
+        document.getElementById('t-date').value = t.date;
+        document.getElementById('t-code').value = t.code;
+        document.getElementById('t-name').value = t.name;
+        document.getElementById('t-sector').value = t.sector || "";
+        document.getElementById('t-side').value = t.side;
+        document.getElementById('t-memo').value = t.memo || "";
+        document.getElementById('t-manual-pl').value = t.pl;
+        document.getElementById('exec-list').innerHTML = ""; // 編集時は手動計算を優先
+        document.getElementById('btn-t-cancel').style.display = "block";
+        document.getElementById('btn-t-save').innerText = "修正内容で上書き保存";
+        window.scrollTo(0, document.getElementById('t-section').offsetTop - 160);
     }
-    function editHolding(i) { hIdx = i; const h = holdings[i]; document.getElementById('h-editor').style.display='block'; document.getElementById('h-code').value=h.code; document.getElementById('h-name').value=h.name; document.getElementById('h-qty').value=h.qty; document.getElementById('h-buy').value=h.buyPrice; document.getElementById('h-now').value=h.currentPrice; window.scrollTo(0,0); render(); }
-    function deleteHolding(i) { if(confirm("削除しますか？")) { holdings.splice(i,1); saveAll(); render(); } }
 
+    // トレード保存（新規・決済・編集共通）
+    function saveTrade() {
+        const manualPl = document.getElementById('t-manual-pl').value;
+        let finalPl = 0;
+
+        if (manualPl !== "") {
+            finalPl = parseInt(manualPl);
+        } else {
+            const ps = document.querySelectorAll('.e-p'), qs = document.querySelectorAll('.e-q'), ts = document.querySelectorAll('.e-t');
+            let iV=0, oV=0;
+            ps.forEach((p,i) => { 
+                const pv=parseFloat(p.value)||0, qv=parseFloat(qs[i].value)||0; 
+                if(ts[i].value==='entry') iV+=pv*qv; else oV+=pv*qv; 
+            });
+            finalPl = (document.getElementById('t-side').value==='買'?(oV-iV):(iV-oV));
+        }
+
+        const data = {
+            date: document.getElementById('t-date').value || new Date().toISOString().split('T')[0],
+            code: document.getElementById('t-code').value,
+            name: document.getElementById('t-name').value,
+            sector: document.getElementById('t-sector').value,
+            side: document.getElementById('t-side').value,
+            pl: finalPl,
+            memo: document.getElementById('t-memo').value
+        };
+
+        if (tEditIdx > -1) {
+            trades[tEditIdx] = data; // 編集上書き
+        } else {
+            trades.unshift(data); // 新規追加
+        }
+
+        if(isSettleMode && hIdx > -1) holdings.splice(hIdx, 1);
+        
+        saveAll(); resetTForm(); render();
+    }
+
+    // 入力フォームリセット
+    function resetTForm() {
+        tEditIdx = -1; hIdx = -1; isSettleMode = false;
+        document.getElementById('t-form-container').classList.remove('edit-form-highlight', 'edit-mode-active');
+        document.getElementById('settle-notice').style.display = "none";
+        document.getElementById('edit-notice').style.display = "none";
+        document.getElementById('exec-list').innerHTML = ""; addRow();
+        document.getElementById('t-manual-pl').value = "";
+        document.getElementById('t-memo').value = "";
+        document.getElementById('btn-t-cancel').style.display = "none";
+        document.getElementById('btn-t-save').innerText = "トレードを保存";
+    }
+
+    // --- その他既存関数 ---
+    function searchStock(pre) {
+        const c = document.getElementById(pre+'-code').value.trim();
+        if(typeof STOCK_MASTER !== 'undefined' && STOCK_MASTER[c]) {
+            document.getElementById(pre+'-name').value = STOCK_MASTER[c][0];
+            document.getElementById(pre+'-sector').value = STOCK_MASTER[c][1];
+        }
+    }
+    function showHForm() { hIdx = -1; document.getElementById('h-editor').style.display='block'; }
+    function hideHForm() { document.getElementById('h-editor').style.display='none'; }
+    function saveHolding() {
+        const d = { 
+            code: document.getElementById('h-code').value, name: document.getElementById('h-name').value, 
+            sector: document.getElementById('h-sector').value, qty: parseFloat(document.getElementById('h-qty').value)||0, 
+            buyPrice: parseFloat(document.getElementById('h-buy').value)||0, currentPrice: parseFloat(document.getElementById('h-now').value)||0 
+        };
+        holdings.unshift(d); saveAll(); hideHForm(); render();
+    }
+    function settleHolding(i) {
+        const h = holdings[i]; isSettleMode = true; hIdx = i;
+        document.getElementById('t-form-container').classList.add('edit-form-highlight');
+        document.getElementById('settle-notice').style.display = "block";
+        document.getElementById('t-code').value = h.code; document.getElementById('t-name').value = h.name;
+        document.getElementById('t-sector').value = h.sector;
+        document.getElementById('exec-list').innerHTML = "";
+        addRow(h.buyPrice, h.qty, "entry"); addRow(h.currentPrice, h.qty, "exit");
+        document.getElementById('btn-t-cancel').style.display = "block";
+        window.scrollTo(0, document.getElementById('t-section').offsetTop - 160);
+    }
     function addRow(p="", q="", t="entry") {
         const d = document.createElement('div'); d.className = 'form-grid';
         d.innerHTML = `<input type="number" class="e-p" placeholder="単価" value="${p}"><input type="number" class="e-q" placeholder="数" value="${q}" style="grid-column:span 2"><select class="e-t" style="grid-column:span 2"><option value="entry" ${t==='entry'?'selected':''}>IN</option><option value="exit" ${t==='exit'?'selected':''}>OUT</option></select>`;
         document.getElementById('exec-list').appendChild(d);
     }
-    function saveTrade() {
-        const ps = document.querySelectorAll('.e-p'), qs = document.querySelectorAll('.e-q'), ts = document.querySelectorAll('.e-t');
-        let iV=0, oV=0, execs=[];
-        ps.forEach((p,i) => { const pv=parseFloat(p.value)||0, qv=parseFloat(qs[i].value)||0; execs.push({p:pv, q:qv, t:ts[i].value}); if(ts[i].value==='entry') iV+=pv*qv; else oV+=pv*qv; });
-        const d = { date: document.getElementById('t-date').value, code: document.getElementById('t-code').value, name: document.getElementById('t-name').value, side: document.getElementById('t-side').value, pl: (document.getElementById('t-side').value==='買'?(oV-iV):(iV-oV)), memo: document.getElementById('t-memo').value, execs: execs };
-        if(tIdx > -1) trades[tIdx] = d; else trades.unshift(d);
-        saveAll(); resetTForm();
-    }
-    function editTrade(i) { tIdx = i; const t = trades[i]; document.getElementById('t-form-container').classList.add('edit-form-highlight'); document.getElementById('t-date').value=t.date; document.getElementById('t-code').value=t.code; document.getElementById('t-name').value=t.name; document.getElementById('t-side').value=t.side; document.getElementById('t-memo').value=t.memo; document.getElementById('exec-list').innerHTML=""; (t.execs||[]).forEach(e=>addRow(e.p, e.q, e.t)); document.getElementById('btn-t-cancel').style.display="block"; window.scrollTo(0, document.getElementById('t-section').offsetTop-100); render(); }
-    function deleteTrade(i) { if(confirm("ゴミ箱へ？")) { trash.unshift(trades.splice(i,1)[0]); saveAll(); render(); } }
-    function resetTForm() { tIdx = -1; document.getElementById('t-form-container').classList.remove('edit-form-highlight'); syncInputDateWithPeriod(); ['t-code','t-name','t-memo'].forEach(id=>document.getElementById(id).value=""); document.getElementById('exec-list').innerHTML=""; addRow(); document.getElementById('btn-t-cancel').style.display="none"; render(); }
-    function restoreTrade(i) { trades.unshift(trash.splice(i,1)[0]); saveAll(); render(); }
-    function emptyTrash() { if(confirm("空にしますか？")) { trash = []; saveAll(); render(); } }
-    function searchStock(pre) { const c = document.getElementById(pre+'-code').value.trim(); document.getElementById(pre+'-name').value = (typeof STOCK_MASTER !== 'undefined' && STOCK_MASTER[c]) ? STOCK_MASTER[c] : ""; }
-
-    function render() {
-        const range = getRange();
-        document.getElementById('period-info').innerText = `期間: ${range.s.toLocaleDateString()} 〜 ${range.e.toLocaleDateString()}`;
-        let hHtml = "", totalMV = 0, totalFloating = 0;
-        holdings.forEach((h, i) => {
-            const mv = h.currentPrice * h.qty, pl = mv - (h.buyPrice * h.qty);
-            totalMV += mv; totalFloating += pl;
-            hHtml += `<div class="card ${pl>=0?'win':'loss'} ${hIdx===i?'editing-card':''}">
-                <div class="card-actions"><button class="btn-edit" onclick="editHolding(${i})">編集</button><button class="btn-delete" onclick="deleteHolding(${i})">削除</button></div>
-                <div style="font-size:11px;color:#777">保有銘柄</div>
-                <div style="font-weight:bold">${h.code} ${h.name} <a href="https://kabutan.jp/stock/?code=${h.code}" target="_blank" style="text-decoration:none;">📈</a> / ${h.qty}株</div>
-                <div class="card-pl ${pl>=0?'pl-plus':'pl-minus'}">${mv.toLocaleString()}円 (${pl>=0?'+':''}${pl.toLocaleString()})</div>
-            </div>`;
-        });
-        document.getElementById('holding-list').innerHTML = hHtml;
-
-        let tHtml = "", pNet = 0, tNet = 0, lastDate = "";
-        const filteredTrades = trades.map((t, idx) => ({ ...t, originalIdx: idx })).filter(t => { tNet += t.pl; const d = new Date(t.date); return d >= range.s && d <= range.e; }).sort((a, b) => new Date(b.date) - new Date(a.date));
-        filteredTrades.forEach((t) => {
-            pNet += t.pl;
-            if (t.date !== lastDate) {
-                const d = new Date(t.date);
-                tHtml += `<div style="margin: 20px 0 10px 5px; font-weight: bold; color: #555; border-left: 3px solid var(--primary); padding-left: 8px;">📅 ${d.toLocaleDateString()}</div>`;
-                lastDate = t.date;
-            }
-            tHtml += `<div class="card ${t.pl>=0?'win':'loss'} ${tIdx===t.originalIdx?'editing-card':''}">
-                <div class="card-actions"><button class="btn-edit" onclick="editTrade(${t.originalIdx})">編集</button><button class="btn-delete" onclick="deleteTrade(${t.originalIdx})">削除</button></div>
-                <div style="font-weight:bold">${t.name} (${t.side}) <a href="https://kabutan.jp/stock/?code=${t.code}" target="_blank" style="text-decoration:none;">📈</a></div>
-                <div class="card-pl ${t.pl>=0?'pl-plus':'pl-minus'}">${t.pl.toLocaleString()}円</div>
-                ${t.memo ? `<div style="font-size:11px; color:#666; margin-top:5px; background:#f0f0f0; padding:6px; border-radius:4px;">📝 ${t.memo}</div>` : ''}
-            </div>`;
-        });
-        document.getElementById('history-list').innerHTML = tHtml || '<div style="text-align:center; padding:20px; color:#aaa;">データがありません</div>';
-        
-        let trHtml = "";
-        trash.forEach((t, i) => { trHtml += `<div class="card" style="opacity:0.6"><div class="card-actions"><button class="btn-restore" onclick="restoreTrade(${i})">復元</button></div><div>${t.date} ${t.name}</div></div>`; });
-        document.getElementById('trash-list').innerHTML = trHtml;
-
-        document.getElementById('dash-period-pl').innerText = pNet.toLocaleString() + "円";
-        document.getElementById('dash-period-pl').className = "value " + (pNet>=0?'pl-plus':'pl-minus');
-        const totalTaxed = (tNet > 0 ? tNet * (1 - TAX) : tNet) + totalFloating;
-        document.getElementById('dash-total-pl').innerText = Math.floor(totalTaxed).toLocaleString() + "円";
-        document.getElementById('dash-holdings-val').innerText = totalMV.toLocaleString() + "円";
-        document.getElementById('dash-holdings-diff').innerText = `(${totalFloating>=0?'+':''}${totalFloating.toLocaleString()})`;
-        document.getElementById('dash-holdings-diff').className = (totalFloating>=0?'pl-plus':'pl-minus');
+    function deleteHolding(i) { if(confirm("消しますか？")) { holdings.splice(i,1); saveAll(); render(); } }
+    function exportData() { const blob = new Blob([JSON.stringify({trades,holdings,goals})], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'TradeLog_Backup.json'; a.click(); }
+    function refreshPastSectors() {
+        trades = trades.map(t => { if(STOCK_MASTER[t.code]) { t.name=STOCK_MASTER[t.code][0]; t.sector=STOCK_MASTER[t.code][1]; } return t; });
+        saveAll(); render(); alert("同期完了");
     }
 </script>
 </body>
